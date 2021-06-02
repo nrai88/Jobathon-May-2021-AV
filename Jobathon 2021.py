@@ -1,5 +1,4 @@
 
-import os
 import pandas as pd
 import numpy as np
 from catboost import CatBoostClassifier
@@ -7,16 +6,13 @@ from sklearn.model_selection import StratifiedKFold
 import time
 
 
-os.getcwd()
-os.chdir('Documents\Analytics\Jobathon May 2021')
-
 train=pd.read_csv('Data/train_s3TEQDk.csv')
 test=pd.read_csv('Data/test_mSzZ8RL.csv')
 
 traindf=pd.concat([train,test]).reset_index(drop=True)
 traindf['Credit_Product'].fillna('Missing',inplace=True)
 
-
+#taking age and vintage as categorical for slightly better scores
 traindf.Age=traindf.Age.astype(str)
 traindf.Vintage=traindf.Vintage.astype(str)
 
@@ -40,7 +36,7 @@ train_X=train_X[num_cols+cat_cols+['Is_Lead']]
 test_X=traindf[traindf['Is_Lead'].isnull()]
 test_X=test_X[num_cols+cat_cols]
 
-
+#Doing a 5 fold stratified CV
 fold = StratifiedKFold(n_splits=5, shuffle=True, random_state=12345)
 cb_scores=[]
 pred_cb=[]
@@ -58,10 +54,10 @@ for idxT, idxV in fold.split(train_X,train_X.Is_Lead):
     imp_scores.append(cb.get_feature_importance())
     print ('The Local CV till now is {} for {} rounds and took {} minutes'.format(np.mean(cb_scores),len(cb_scores),(time.time()-t1)/60))
 
-
+#taking weighted average of scores and predictions
 weights=cb_scores/np.sum(cb_scores)
 print ('The Local CV is {}'.format(np.sum(weights*cb_scores)))
 
 pred=np.sum(np.multiply(np.transpose(np.array(pred_cb)),weights),1)
 submit=pd.DataFrame({'ID':test.ID,'Is_Lead':pred})
-submit.to_csv('Submissions/submit17.csv',index=False)
+submit.to_csv('Submissions/submit.csv',index=False)
